@@ -1,0 +1,85 @@
+.board-view {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.board-column {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-column.drop-target {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.board-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.board-column-header .count {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.board-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.board-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: grab;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.board-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.board-card:active {
+  cursor: grabbing;
+}
+
+.board-card.dragging {
+  opacity: 0.4;
+}
+
+.board-card-title {
+  font-weight: 500;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.board-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.board-card-progress {
+  margin-top: 8px;
+}

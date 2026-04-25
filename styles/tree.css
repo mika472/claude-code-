@@ -1,0 +1,140 @@
+.tree-view {
+  max-width: 1100px;
+}
+
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 24px;
+  border-left: 1px dashed var(--color-border);
+  margin-left: 10px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
+  border: 1px solid transparent;
+}
+
+.tree-node:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.tree-toggle {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 3px;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.tree-toggle:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.tree-toggle.invisible {
+  visibility: hidden;
+}
+
+.tree-title {
+  flex: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.tree-meta .assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-meta .assignee::before {
+  content: "👤";
+  font-size: 11px;
+}
+
+.tree-meta .dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-meta .dates::before {
+  content: "📅";
+  font-size: 11px;
+}
+
+.tree-add-child {
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px dashed var(--color-border-strong);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.tree-add-child:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.tree-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.tree-row .tree-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.tree-node:hover .tree-actions {
+  display: inline-flex;
+}
+
+.tree-actions button {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.tree-actions button:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}

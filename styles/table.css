@@ -1,0 +1,66 @@
+.table-view {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 900px;
+}
+
+.task-table thead th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.task-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.task-table tbody tr:hover {
+  background: var(--color-surface);
+}
+
+.task-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.breadcrumb {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.breadcrumb-sep {
+  margin: 0 4px;
+  opacity: 0.6;
+}
+
+.cell-title {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cell-title:hover {
+  text-decoration: underline;
+}
+
+.cell-progress {
+  display: flex;
+  align-items: center;
+  min-width: 100px;
+}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>タスク管理</title>
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/tree.css" />
+  <link rel="stylesheet" href="styles/table.css" />
+  <link rel="stylesheet" href="styles/board.css" />
+  <link rel="stylesheet" href="styles/gantt.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-icon">▦</span>
+      <h1>タスク管理</h1>
+    </div>
+    <nav class="view-tabs" id="viewTabs">
+      <button class="view-tab active" data-view="tree">ツリー</button>
+      <button class="view-tab" data-view="table">テーブル</button>
+      <button class="view-tab" data-view="board">ボード</button>
+      <button class="view-tab" data-view="gantt">ガント</button>
+    </nav>
+    <div class="header-actions">
+      <button id="addRootBtn" class="btn btn-primary">＋ 大項目を追加</button>
+    </div>
+  </header>
+
+  <section id="filterBar" class="filter-bar"></section>
+
+  <main id="viewContainer" class="view-container"></main>
+
+  <div id="modalRoot"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
