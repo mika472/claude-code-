@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>採用支援ツール</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">MG</div>
+      <div><div class="brand-name">採用支援ツール</div><div class="brand-sub">Recruiting Suite</div></div>
+    </div>
+    <nav>
+      <a data-view="dashboard" class="active">📊 ダッシュボード</a>
+      <a data-view="generate">✨ AI求人作成</a>
+      <a data-view="jobs">📋 求人一覧</a>
+      <a data-view="applicants">👥 応募者管理</a>
+      <a data-view="settings">⚙️ 会社情報・予算</a>
+    </nav>
+    <div class="side-foot" id="ai-badge">PoC / デモ環境</div>
+  </aside>
+
+  <main class="content">
+    <!-- ダッシュボード -->
+    <section id="view-dashboard" class="view">
+      <h1>採用ダッシュボード</h1>
+      <p class="muted">採用コスト削減の指標：<b>採用単価</b>（媒体費 ÷ 入社数）／<b>応募単価</b>（媒体費 ÷ 応募数）</p>
+      <div id="kpi-cards" class="cards"></div>
+      <div class="two-col">
+        <div class="panel"><h2>選考ステータス内訳</h2><div id="status-bars"></div></div>
+        <div class="panel"><h2>応募チャネル別</h2><div id="channel-bars"></div></div>
+      </div>
+    </section>
+
+    <!-- AI求人作成 -->
+    <section id="view-generate" class="view hidden">
+      <h1>AI求人作成</h1>
+      <p class="muted">条件を入力すると、求職者に魅力が伝わる求人原稿を自動で作成します。</p>
+      <div class="two-col">
+        <div class="panel">
+          <div class="field-row"><label>職種 *</label><input id="g-title" type="text" placeholder="例）保育士（正社員）"></div>
+          <div class="field-row"><label>業種</label>
+            <select id="g-industry"><option>保育</option><option>介護</option><option>IT</option><option>営業</option><option>飲食</option><option>製造</option><option>事務</option><option>その他</option></select></div>
+          <div class="field-row"><label>雇用形態</label>
+            <select id="g-emp"><option>正社員</option><option>契約社員</option><option>アルバイト・パート</option><option>業務委託</option></select></div>
+          <div class="field-row"><label>勤務地</label><input id="g-location" type="text" placeholder="例）東京都世田谷区 / フルリモート可"></div>
+          <div class="field-row"><label>給与</label><input id="g-salary" type="text" placeholder="例）月給23万〜30万円"></div>
+          <div class="field-row"><label>アピールしたい点（カンマ区切り）</label><textarea id="g-appeal" style="min-height:70px" placeholder="残業少なめ, 研修充実, 駅近"></textarea></div>
+          <button class="btn" id="btn-generate">求人原稿を生成</button>
+        </div>
+        <div class="panel">
+          <div id="gen-status" class="muted">右の条件を入力して「生成」を押してください。</div>
+          <div id="gen-result" class="hidden">
+            <div class="field-row"><label>キャッチコピー</label><input id="r-catch" type="text"></div>
+            <div class="field-row"><label>本文</label><textarea id="r-body" style="min-height:280px"></textarea></div>
+            <div class="modal-foot"><button class="btn ghost" id="btn-regen">再生成</button><button class="btn" id="btn-save-job">この内容で求人を保存</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 求人一覧 -->
+    <section id="view-jobs" class="view hidden">
+      <div class="view-head"><h1>求人一覧</h1><div class="actions"><button class="btn ghost" id="btn-add-job">＋ 手動で追加</button></div></div>
+      <div id="job-list" class="job-list"></div>
+    </section>
+
+    <!-- 応募者管理 -->
+    <section id="view-applicants" class="view hidden">
+      <div class="view-head"><h1>応募者管理</h1><div class="actions">
+        <select id="apl-filter"><option value="">すべての求人</option></select>
+        <button class="btn" id="btn-add-applicant">＋ 応募者を追加</button></div></div>
+      <div class="panel">
+        <table class="grid" id="applicant-table">
+          <thead><tr><th>氏名</th><th>応募求人</th><th>チャネル</th><th>ステータス</th><th>応募日</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 設定 -->
+    <section id="view-settings" class="view hidden">
+      <h1>会社情報・採用予算</h1>
+      <p class="muted">求人原稿に使う会社情報と、採用単価の算出に使う媒体費（採用予算）です。</p>
+      <div class="panel" id="company-form"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-box"><div class="modal-head"><h2 id="modal-title"></h2><button id="modal-close" class="x">×</button></div>
+      <div id="modal-body"></div></div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>

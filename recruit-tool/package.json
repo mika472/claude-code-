@@ -1,0 +1,15 @@
+{
+  "name": "recruit-tool",
+  "version": "1.0.0",
+  "description": "採用支援ツール（AI求人原稿作成・応募者管理・応募者対応の自動化・採用KPI）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node scripts/demo-run.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "express": "^5.2.1"
+  }
+}
