@@ -1,0 +1,15 @@
+{
+  "name": "sales-tool",
+  "version": "1.0.0",
+  "description": "営業支援ツール（フォーム営業の自動化・企業リスト管理・文面テンプレート・KPI計測）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "demo": "node scripts/demo-run.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "playwright": "^1.61.0"
+  }
+}
