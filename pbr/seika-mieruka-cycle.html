@@ -1,0 +1,273 @@
+<title>成果の見える化サイクル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* Layout: 1カラムの社内共有ページ。上=サイクル図+選択ステップ詳細、中=1サイクルのタイムライン、下=役割別のやること */
+:root{
+  --bg:#f5f7fb; --surface:#ffffff; --ink:#1b2840; --muted:#5b6880; --line:#d6dcea;
+  --navy:#2a4775; --blue:#3f6fb5; --blue-soft:#e6eefa; --gold:#c8902a; --gold-soft:#fbf1df;
+  --display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1522; --surface:#172034; --ink:#e7ecf5; --muted:#a2adc2; --line:#2c3852;
+  --navy:#8fb0e6; --blue:#7aa3e8; --blue-soft:#1d2b47; --gold:#e3b25a; --gold-soft:#3a2e17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1522; --surface:#172034; --ink:#e7ecf5; --muted:#a2adc2; --line:#2c3852;
+  --navy:#8fb0e6; --blue:#7aa3e8; --blue-soft:#1d2b47; --gold:#e3b25a; --gold-soft:#3a2e17; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.75;padding:0 16px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.35}
+h1{font-size:clamp(28px,5vw,40px);font-weight:900;color:var(--navy)}
+h2{font-size:22px;font-weight:700}
+h3{font-size:18px;font-weight:700}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--blue);font-weight:700}
+.lead{color:var(--muted);max-width:62ch;margin-top:12px}
+header{display:flex;flex-direction:column;gap:6px}
+.sec-head{display:flex;flex-direction:column;gap:4px;margin-bottom:20px}
+.sec-head p{color:var(--muted);font-size:14px}
+
+/* cycle */
+.cycle{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:32px;align-items:center}
+@media (max-width:820px){.cycle{grid-template-columns:1fr}}
+.diagram{min-width:0}
+.diagram svg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node rect{fill:var(--surface);stroke:var(--navy);stroke-width:2;transition:fill .2s}
+.node .t1{font-family:var(--display);font-weight:700;font-size:19px;fill:var(--ink)}
+.node .t2{font-size:14px;fill:var(--muted)}
+.node .num{font-family:var(--display);font-weight:900;font-size:14px;fill:var(--surface)}
+.node .badge{fill:var(--navy)}
+.node:hover rect,.node:focus-visible rect{fill:var(--blue-soft)}
+.node:focus{outline:none}
+.node:focus-visible rect{stroke:var(--gold);stroke-width:3}
+.node.active rect{fill:var(--navy);stroke:var(--navy)}
+.node.active .t1{fill:var(--surface)}
+.node.active .t2{fill:var(--blue-soft)}
+.node.active .badge{fill:var(--gold)}
+.ring{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:2 9;stroke-linecap:round}
+.arrow{fill:var(--blue)}
+.hub{fill:var(--navy)}
+.hub-t{font-family:var(--display);font-weight:900;font-size:24px;fill:var(--surface)}
+.hub-s{font-size:13px;fill:var(--blue-soft)}
+.hint{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.detail .step-no{font-family:var(--display);font-weight:900;color:var(--gold);font-size:14px;letter-spacing:.08em}
+.detail h3{font-size:24px;color:var(--navy)}
+.detail .what{color:var(--ink)}
+.kv{display:grid;grid-template-columns:5.5em 1fr;gap:10px 14px;margin:0;font-size:14px}
+.kv dt{color:var(--muted);font-weight:500}
+.kv dd{margin:0;font-weight:500}
+.out{background:var(--gold-soft);border-radius:10px;padding:12px 14px;font-size:14px}
+.out b{color:var(--gold);font-family:var(--display)}
+.nav{display:flex;gap:8px}
+.nav button{font:inherit;font-size:13px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.nav button:hover{border-color:var(--blue);color:var(--blue)}
+.nav button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* timeline */
+.tl-scroll{overflow-x:auto;padding-bottom:4px}
+.tl{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));min-width:900px;position:relative}
+.tl::before{content:"";position:absolute;left:0;right:0;top:15px;height:2px;background:var(--line)}
+.tl-item{position:relative;padding:0 12px 0 0;display:flex;flex-direction:column;gap:6px}
+.dot{width:32px;height:32px;border-radius:50%;background:var(--surface);border:2px solid var(--navy);color:var(--navy);font-family:var(--display);font-weight:900;display:grid;place-items:center;position:relative;font-size:14px}
+.tl-item.loop .dot{background:var(--gold);border-color:var(--gold);color:var(--surface)}
+.when{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.04em;margin-top:6px}
+.tl-item h4{margin:0;font-family:var(--display);font-size:16px}
+.tl-item p{font-size:13px;color:var(--muted);line-height:1.6}
+.phase{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));min-width:900px;margin-top:18px;gap:0}
+.phase span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:6px;text-align:center}
+.ph-a{grid-column:1 / 3;background:var(--blue-soft);color:var(--navy);margin-right:8px}
+.ph-b{grid-column:3 / 5;background:var(--bg);border:1px dashed var(--line);color:var(--muted);margin-right:8px}
+.ph-c{grid-column:5 / 7;background:var(--gold-soft);color:var(--gold)}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.metric{border-top:3px solid var(--navy);background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:6px;border-radius:0 0 10px 10px}
+.metric .src{font-size:12px;color:var(--muted)}
+.metric b{font-family:var(--display);font-size:17px}
+.metric p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* roles */
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.roles{grid-template-columns:1fr}}
+.role{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.role .who{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--blue)}
+.role ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.role li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14px;line-height:1.6}
+.role li span{font-family:var(--display);font-weight:900;color:var(--navy);font-size:13px;padding-top:1px}
+
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">AI研修 運用ルール ／ 全スタッフ共有</span>
+    <h1>成果の見える化サイクル</h1>
+    <p class="lead">研修を「受けて終わり」にしないための6ステップです。学ぶ → 確かめる → 現場で使う → 数字にする → みんなで称える → 資産として残す。この流れを毎回くり返し、AI活用の成果を社内で見えるようにします。</p>
+  </header>
+
+  <section aria-labelledby="s-cycle">
+    <div class="sec-head">
+      <h2 id="s-cycle">6つのステップ</h2>
+      <p>図のステップを押すと、右に「いつ・誰が・何をするか」が表示されます。</p>
+    </div>
+    <div class="cycle">
+      <div class="diagram">
+        <svg id="cy" viewBox="0 0 640 560" role="group" aria-label="成果の見える化サイクル図"></svg>
+        <p class="hint">⑥まで終わったら、次回の①へ戻ります</p>
+      </div>
+      <article class="detail" aria-live="polite">
+        <span class="step-no" id="d-no">STEP 1 / 6</span>
+        <h3 id="d-title">対面研修</h3>
+        <p class="what" id="d-what"></p>
+        <dl class="kv">
+          <dt>いつ</dt><dd id="d-when"></dd>
+          <dt>誰が</dt><dd id="d-who"></dd>
+          <dt>ポイント</dt><dd id="d-tip"></dd>
+        </dl>
+        <p class="out"><b>残るもの：</b><span id="d-out"></span></p>
+        <div class="nav">
+          <button type="button" id="prev">← 前のステップ</button>
+          <button type="button" id="next">次のステップ →</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-tl">
+    <div class="sec-head">
+      <h2 id="s-tl">1サイクルの時間の流れ</h2>
+      <p>研修当日から次回研修の冒頭までが1サイクルです。</p>
+    </div>
+    <div class="tl-scroll">
+      <div class="tl" id="tl"></div>
+      <div class="phase">
+        <span class="ph-a">研修当日（教室）</span>
+        <span class="ph-b">次回研修まで（各部署）</span>
+        <span class="ph-c">次回研修の冒頭〜随時</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-metrics">
+    <div class="sec-head">
+      <h2 id="s-metrics">このサイクルで「見える」ようになる数字</h2>
+      <p>各ステップから出てくる記録が、そのまま成果の見える化になります。</p>
+    </div>
+    <div class="metrics">
+      <div class="metric"><span class="src">② ミニテストから</span><b>理解度</b><p>講義内容がどこまで身についたか</p></div>
+      <div class="metric"><span class="src">③ 持ち帰り課題から</span><b>実践の件数</b><p>自部署で実際にAIを使った回数・内容</p></div>
+      <div class="metric"><span class="src">④ 集計から</span><b>ランキング</b><p>個人・部署ごとの取り組み度合い</p></div>
+      <div class="metric"><span class="src">⑥ 事例ストックから</span><b>社内事例の蓄積数</b><p>誰でも真似できるノウハウの量</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-roles">
+    <div class="sec-head">
+      <h2 id="s-roles">立場ごとにやること</h2>
+      <p>自分に関係する列だけ確認すれば大丈夫です。</p>
+    </div>
+    <div class="roles">
+      <div class="role">
+        <span class="who">受講するスタッフ</span>
+        <h3>学んで、使って、共有する</h3>
+        <ul>
+          <li><span>①</span>研修に参加する（水・木・金のいずれか）</li>
+          <li><span>②</span>講義の最後にミニテストを受ける</li>
+          <li><span>③</span>持ち帰り課題を自部署の業務で実践する</li>
+          <li><span>⑥</span>うまくいった使い方を共有ドライブに残す</li>
+        </ul>
+      </div>
+      <div class="role">
+        <span class="who">部署の上長</span>
+        <h3>実践の時間と場をつくる</h3>
+        <ul>
+          <li><span>③</span>課題を業務の中で試せるよう後押しする</li>
+          <li><span>⑤</span>表彰されたメンバーを部署内でも称える</li>
+          <li><span>⑥</span>部署の良い事例をストックに入れるよう声をかける</li>
+        </ul>
+      </div>
+      <div class="role">
+        <span class="who">研修事務局</span>
+        <h3>数字にして、みんなに返す</h3>
+        <ul>
+          <li><span>④</span>テスト結果と課題の実践を集計し、ランキングを更新する</li>
+          <li><span>⑤</span>次回研修の冒頭で共有・表彰の時間をとる</li>
+          <li><span>⑥</span>共有ドライブの事例を整理し、探しやすく保つ</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">研修日：水・木・金 ／ 事例の保存先：共有ドライブ。担当者や締切の詳細は研修事務局からの案内に従ってください。</p>
+</div>
+
+<script>
+const STEPS=[
+  {t:"対面研修",s:"（水・木・金）",what:"講師による対面の研修です。AIの使い方を、実際の業務に近い題材で学びます。",when:"水・木・金",who:"受講スタッフ・講師",tip:"前回の持ち帰り課題で困ったことを持ってくると、その場で解決できます。",out:"受講記録"},
+  {t:"講義内ミニテスト",s:"",what:"講義の最後に短いテストを行い、その日の内容が理解できたかを確かめます。",when:"研修の終わりに",who:"受講スタッフ",tip:"点数で評価するためではなく、わからない所を見つけるためのテストです。",out:"理解度スコア"},
+  {t:"持ち帰り課題",s:"（自部署で実践）",what:"学んだことを自分の部署の実際の業務で試します。小さな作業1つからで構いません。",when:"次回研修まで",who:"受講スタッフ（上長がサポート）",tip:"「何の作業に・どう使い・何分短くなったか」をメモしておくと報告が楽です。",out:"実践レポート"},
+  {t:"集計・",t2:"ランキング更新",s:"",what:"ミニテストの結果と課題の実践状況を集計し、ランキングを更新します。",when:"次回研修の前まで",who:"研修事務局",tip:"取り組みが数字で見えることで、部署をまたいで刺激し合えます。",out:"最新ランキング"},
+  {t:"次回冒頭で",t2:"共有・表彰",s:"",what:"次回研修のはじめに、ランキングと優れた実践事例を紹介し、表彰します。",when:"次回研修の冒頭",who:"研修事務局・受講スタッフ全員",tip:"表彰された事例は、そのまま他の人が真似できるお手本になります。",out:"表彰事例"},
+  {t:"事例ストック",s:"（共有ドライブ）",what:"良い事例を共有ドライブに保存し、誰でもいつでも参照できるようにします。",when:"随時",who:"受講スタッフ・研修事務局",tip:"困ったときは、まず共有ドライブで同じような事例がないか探してみましょう。",out:"社内の事例集"}
+];
+const TL=[
+  {when:"研修当日",h:"① 対面研修",p:"水・木・金に実施"},
+  {when:"研修の終わり",h:"② ミニテスト",p:"理解度を確認"},
+  {when:"翌日〜次回まで",h:"③ 持ち帰り課題",p:"自部署の業務で実践"},
+  {when:"次回研修の前",h:"④ 集計・ランキング",p:"事務局が更新"},
+  {when:"次回研修の冒頭",h:"⑤ 共有・表彰",p:"全員の前で紹介"},
+  {when:"随時",h:"⑥ 事例ストック",p:"共有ドライブへ保存",loop:true}
+];
+const NUMS=["①","②","③","④","⑤","⑥"];
+const ns="http://www.w3.org/2000/svg";
+const svg=document.getElementById("cy");
+const cx=320,cy=280,R=205,W=176,H=74;
+function el(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e}
+el("circle",{class:"ring",cx,cy,r:R});
+// arrows between nodes (tangent, clockwise)
+for(let i=0;i<6;i++){
+  const a=(-60+60*i)*Math.PI/180, x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+  const deg=-60+60*i+90;
+  el("path",{class:"arrow",d:"M -9 -8 L 9 0 L -9 8 Z",transform:`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${deg})`});
+}
+el("circle",{class:"hub",cx,cy,r:92});
+const ht=el("text",{class:"hub-t","text-anchor":"middle",x:cx,y:cy-6});ht.textContent="成果の";
+const ht2=el("text",{class:"hub-t","text-anchor":"middle",x:cx,y:cy+26});ht2.textContent="見える化";
+const nodes=STEPS.map((s,i)=>{
+  const a=(-90+60*i)*Math.PI/180, x=cx+R*Math.cos(a), y=cy+R*Math.sin(a);
+  const g=el("g",{class:"node",tabindex:"0",role:"button","aria-label":`ステップ${i+1} ${s.t}${s.t2||""}`,transform:`translate(${(x-W/2).toFixed(1)} ${(y-H/2).toFixed(1)})`});
+  el("rect",{width:W,height:H,rx:12},g);
+  el("circle",{class:"badge",cx:0,cy:0,r:14},g);
+  const n=el("text",{class:"num","text-anchor":"middle",x:0,y:5},g);n.textContent=i+1;
+  const two=s.t2||s.s;
+  const t1=el("text",{class:"t1","text-anchor":"middle",x:W/2,y:two?32:43},g);t1.textContent=s.t;
+  if(two){const t2=el("text",{class:s.t2?"t1":"t2","text-anchor":"middle",x:W/2,y:56},g);t2.textContent=two}
+  g.addEventListener("click",()=>show(i));
+  g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();show(i)}});
+  return g;
+});
+let cur=0;
+function show(i){
+  cur=(i+6)%6;const s=STEPS[cur];
+  nodes.forEach((n,j)=>n.classList.toggle("active",j===cur));
+  document.getElementById("d-no").textContent=`STEP ${cur+1} / 6`;
+  document.getElementById("d-title").textContent=NUMS[cur]+" "+s.t+(s.t2||"")+(s.s?" "+s.s:"");
+  document.getElementById("d-what").textContent=s.what;
+  document.getElementById("d-when").textContent=s.when;
+  document.getElementById("d-who").textContent=s.who;
+  document.getElementById("d-tip").textContent=s.tip;
+  document.getElementById("d-out").textContent=s.out;
+}
+document.getElementById("prev").onclick=()=>show(cur-1);
+document.getElementById("next").onclick=()=>show(cur+1);
+show(0);
+const tl=document.getElementById("tl");
+TL.forEach((t,i)=>{const d=document.createElement("div");d.className="tl-item"+(t.loop?" loop":"");
+  d.innerHTML=`<div class="dot">${i+1}</div><span class="when">${t.when}</span><h4>${t.h}</h4><p>${t.p}</p>`;tl.appendChild(d)});
+</script>
