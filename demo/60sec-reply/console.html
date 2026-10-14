@@ -1,0 +1,780 @@
+<title>60秒返信デモ 進行卓</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* レイアウト：左に時系列の台本、右に貼り物パネル（粘着）。狭い画面では1列に畳む。 */
+:root{
+  --bg:#ebeef3;
+  --surface:#ffffff;
+  --surface-2:#f4f6fa;
+  --ink:#15213f;
+  --ink-soft:#5b6479;
+  --line:#d5dae4;
+  --navy:#1b2a5b;
+  --navy-ink:#1b2a5b;
+  --teal:#2f8f78;
+  --gold:#b2821f;
+  --gold-fill:#f6ecd4;
+  --teal-fill:#e3f2ed;
+  --navy-fill:#dfe6f7;
+  --display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111726;
+    --surface:#1a2235;
+    --surface-2:#222b41;
+    --ink:#e9edf6;
+    --ink-soft:#9ba7c0;
+    --line:#2e3850;
+    --navy:#8ea7ee;
+    --navy-ink:#8ea7ee;
+    --teal:#54c6a7;
+    --gold:#e0b35c;
+    --gold-fill:#3a3014;
+    --teal-fill:#14362e;
+    --navy-fill:#1e2b4e;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111726;
+  --surface:#1a2235;
+  --surface-2:#222b41;
+  --ink:#e9edf6;
+  --ink-soft:#9ba7c0;
+  --line:#2e3850;
+  --navy:#8ea7ee;
+  --navy-ink:#8ea7ee;
+  --teal:#54c6a7;
+  --gold:#e0b35c;
+  --gold-fill:#3a3014;
+  --teal-fill:#14362e;
+  --navy-fill:#1e2b4e;
+  color-scheme:dark;
+}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.75;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+h1,h2,h3,h4{font-family:var(--display);font-weight:700;line-height:1.35;text-wrap:balance;margin:0}
+p{margin:0}
+ul,ol{margin:0;padding-left:1.25em}
+li{margin:.15em 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+
+/* ── ヘッダ ── */
+.bar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+  background:var(--navy);color:#fff;
+  border-bottom:1px solid rgba(0,0,0,.2);
+}
+:root[data-theme="dark"] .bar,
+:root:not([data-theme="light"]) .bar{background:#16203c}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .bar{background:#1b2a5b}}
+.bar-in{
+  max-width:1280px;margin:0 auto;padding-block:10px;padding-left:16px;padding-right:16px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 200px}
+.brand strong{font-family:var(--display);font-size:1.05rem;letter-spacing:.02em}
+.brand span{font-size:.72rem;opacity:.72;letter-spacing:.06em}
+
+.timer{display:flex;align-items:center;gap:12px}
+.dial{position:relative;width:62px;height:62px;flex:none}
+.dial svg{transform:rotate(-90deg);display:block}
+.dial .track{stroke:rgba(255,255,255,.22)}
+.dial .run{stroke:#58d3b2;transition:stroke-dashoffset .25s linear,stroke .3s}
+.dial.over .run{stroke:#e8bb5c}
+.dial b{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-family:var(--display);font-size:1.25rem;font-variant-numeric:tabular-nums;
+}
+.tbtns{display:flex;gap:6px}
+.tbtn{
+  font:inherit;font-size:.8rem;font-weight:700;color:#fff;cursor:pointer;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
+  border-radius:7px;padding:7px 13px;
+}
+.tbtn:hover{background:rgba(255,255,255,.22)}
+.tbtn[aria-pressed="true"]{background:#58d3b2;border-color:#58d3b2;color:#0d2a22}
+
+/* ── 本体 ── */
+.wrap{max-width:1280px;margin:0 auto;padding-left:16px;padding-right:16px;padding-block:22px 56px}
+.cols{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:26px;align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr);gap:20px}}
+
+.kicker{
+  font-size:.7rem;font-weight:700;letter-spacing:.16em;color:var(--ink-soft);
+  text-transform:uppercase;margin-bottom:6px;
+}
+.lede{color:var(--ink-soft);font-size:.9rem;margin-top:6px}
+
+/* ステップ */
+.steps{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.step{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;
+}
+.step.done{opacity:.52}
+.mark{
+  width:34px;height:34px;border-radius:9px;flex:none;cursor:pointer;
+  background:var(--navy-fill);color:var(--navy-ink);border:1px solid transparent;
+  font:inherit;font-family:var(--display);font-size:.9rem;font-weight:700;
+  display:grid;place-items:center;font-variant-numeric:tabular-nums;
+}
+.mark:hover{border-color:var(--navy-ink)}
+.step.done .mark{background:var(--teal-fill);color:var(--teal)}
+.step.hero .mark{background:var(--gold-fill);color:var(--gold)}
+.step-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.step h3{font-size:1rem}
+.clock{
+  font-size:.74rem;font-weight:700;color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;letter-spacing:.04em;
+}
+.step-body{min-width:0;display:flex;flex-direction:column;gap:9px}
+
+.line{display:grid;grid-template-columns:4.5em minmax(0,1fr);gap:10px;font-size:.88rem}
+.line dt{
+  font-size:.68rem;font-weight:700;letter-spacing:.08em;color:var(--ink-soft);
+  padding-top:.42em;
+}
+.line dd{margin:0;min-width:0}
+.say{
+  background:var(--surface-2);border-left:3px solid var(--teal);
+  border-radius:0 7px 7px 0;padding:9px 12px;font-size:.88rem;
+}
+.say p + p{margin-top:.5em}
+.note{font-size:.8rem;color:var(--ink-soft)}
+.solves{
+  display:inline-flex;align-items:center;gap:6px;align-self:flex-start;
+  background:var(--gold-fill);color:var(--gold);border-radius:999px;
+  padding:3px 11px;font-size:.73rem;font-weight:700;
+}
+
+/* 右パネル */
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 96px)}
+@media (max-width:900px){.panel{position:static}}
+.tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.tab{
+  font:inherit;font-size:.8rem;font-weight:700;cursor:pointer;
+  background:transparent;color:var(--ink-soft);
+  border:1px solid var(--line);border-radius:999px;padding:6px 13px;
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+:root[data-theme="dark"] .tab[aria-selected="true"],
+:root:not([data-theme="light"]) .tab[aria-selected="true"]{color:#101a33}
+
+.sheet{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;max-height:min(70vh,760px);overflow-y:auto;
+}
+@media (max-width:900px){.sheet{max-height:none}}
+.block{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+.block:first-child{border-top:0;padding-top:0;margin-top:0}
+.block-head{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
+.block h4{font-size:.93rem}
+.copy{
+  font:inherit;font-size:.74rem;font-weight:700;cursor:pointer;flex:none;
+  background:var(--teal-fill);color:var(--teal);border:1px solid transparent;
+  border-radius:7px;padding:5px 11px;
+}
+.copy:hover{border-color:var(--teal)}
+.copy.ok{background:var(--teal);color:#fff}
+pre{
+  margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:12px;overflow-x:auto;font-size:.8rem;line-height:1.72;white-space:pre-wrap;
+  word-break:break-word;font-family:var(--body);
+}
+pre.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem}
+.swap{background:var(--gold-fill);padding:0 3px;border-radius:3px;font-weight:700;color:var(--gold)}
+
+table{border-collapse:collapse;width:100%;font-size:.82rem}
+.scroll{overflow-x:auto}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{font-size:.72rem;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+
+.qa{border-top:1px solid var(--line);padding:11px 0}
+.qa:first-of-type{border-top:0}
+.qa dt{font-weight:700;font-size:.87rem;margin-bottom:4px}
+.qa dd{margin:0;font-size:.84rem;color:var(--ink-soft)}
+.risk{display:flex;gap:9px;font-size:.84rem;padding:8px 0;border-top:1px dashed var(--line)}
+.risk:first-of-type{border-top:0}
+.risk b{color:var(--gold);flex:none}
+
+.foot{
+  margin-top:30px;border-top:1px solid var(--line);padding-top:16px;
+  font-size:.78rem;color:var(--ink-soft);
+}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <strong>60秒返信デモ 進行卓</strong>
+      <span>顧客管理課 / 問い合わせ → 件名・本文・要確認</span>
+    </div>
+    <div class="timer">
+      <div class="dial" id="dial">
+        <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+          <circle class="track" cx="31" cy="31" r="26" fill="none" stroke-width="5"></circle>
+          <circle class="run" id="ring" cx="31" cy="31" r="26" fill="none" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="0"></circle>
+        </svg>
+        <b id="clock" aria-live="off">60</b>
+      </div>
+      <div class="tbtns">
+        <button class="tbtn" id="go" aria-pressed="false" type="button">開始</button>
+        <button class="tbtn" id="reset" type="button">戻す</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cols">
+
+    <main>
+      <p class="kicker">進行台本 · 全10ステップ / 約10分</p>
+      <h2>画面の左から順に読む。番号を押すと済みになる。</h2>
+      <p class="lede">「話す」は、そのまま声に出して読める文です。言い回しは変えて構いませんが、太字の宣言（困りごとが片付いた、の一言）だけは必ず入れてください。デモの意味がそこで確定します。</p>
+
+      <div class="steps" id="steps">
+
+        <article class="step">
+          <button class="mark" type="button">0</button>
+          <div class="step-body">
+            <div class="step-head"><h3>仕込み</h3><span class="clock">開始5分前</span></div>
+            <dl class="line">
+              <dt>画面</dt>
+              <dd>AIの新規チャットを1つだけ開く。他タブ・通知・メールは閉じる。文字サイズを1段階上げる。</dd>
+            </dl>
+            <dl class="line">
+              <dt>手元</dt>
+              <dd>この進行卓をスマホか2画面目に置く。投影はしない。</dd>
+            </dl>
+            <dl class="line">
+              <dt>空回し</dt>
+              <dd>マスタープロンプト＋サンプルAを1回だけ実行し、出力が3見出しで崩れないか確認する。確認したら、そのチャットは消して新規に戻す。</dd>
+            </dl>
+            <p class="note">出力が荒れる日は温度の問題ではなく、前のやり取りが残っているのが原因です。必ず新規チャットから。</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">1</button>
+          <div class="step-body">
+            <div class="step-head"><h3>つかみ</h3><span class="clock">0:00 – 0:30</span></div>
+            <dl class="line"><dt>画面</dt><dd>スライド1（問い合わせから、返信案を60秒で作る）</dd></dl>
+            <div class="say">
+              <p>「今日は、顧客管理課の返信づくりを、この場で60秒やります。</p>
+              <p>作り込んだ資料はお見せしません。実物を、今から目の前で作ります。」</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">2</button>
+          <div class="step-body">
+            <div class="step-head"><h3>困りごとを3つ置く</h3><span class="clock">0:30 – 1:30</span></div>
+            <dl class="line"><dt>画面</dt><dd>スライド3（顧客管理課によくある3つの困りごと）</dd></dl>
+            <div class="say">
+              <p>「先に、よくある3つを置かせてください。</p>
+              <p>1つ目、担当者ごとに言い回しが違う。2つ目、VIPと一般で敬語の強さが変わって、毎回迷う。3つ目、上席の確認で、同じ指摘が何度も戻ってくる。</p>
+              <p>今日のデモは、この3つを順番に潰します。」</p>
+            </div>
+            <dl class="line"><dt>問いかけ</dt><dd>「御社だと、どれが一番近いですか」と聞いて、1人に答えてもらう。ここで出た答えを、ステップ10でそのまま引用します。</dd></dl>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">3</button>
+          <div class="step-body">
+            <div class="step-head"><h3>入力を見せる</h3><span class="clock">1:30 – 2:00</span></div>
+            <dl class="line"><dt>操作</dt><dd>右パネル「問い合わせ」からサンプルAを貼る。<strong>まだ送信しない。</strong></dd></dl>
+            <div class="say">
+              <p>「入れるのは、これだけです。実際に届く問い合わせから、名前と社名と番号を伏せたものです。</p>
+              <p>個人情報はAIに渡しません。ここは今日いちばん大事な前提なので、先に申し上げておきます。」</p>
+            </div>
+            <dl class="line"><dt>補足</dt><dd>マスキング表を1秒だけ見せる。読み上げは不要。「このルールで伏せています」で足ります。</dd></dl>
+          </div>
+        </article>
+
+        <article class="step hero">
+          <button class="mark" type="button">4</button>
+          <div class="step-body">
+            <div class="step-head"><h3>60秒を回す</h3><span class="clock">2:00 – 3:00</span></div>
+            <span class="solves">ここが本体</span>
+            <dl class="line"><dt>操作</dt><dd>マスタープロンプト＋サンプルAを送信。同時にこの卓の「開始」を押す。</dd></dl>
+            <div class="say">
+              <p>「待っている間に、何が起きているか言います。</p>
+              <p>AIは3つ作っています。件名、本文、そして“まだ決まっていないこと”のリストです。</p>
+              <p>3つ目が、今日いちばんお伝えしたいところです。」</p>
+            </div>
+            <p class="note">止まった・崩れた場合は、言い訳せずに右パネル「保険」を開き、「先に回した結果がこれです」と出して先へ進む。復旧を試みるとデモが死にます。</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">5</button>
+          <div class="step-body">
+            <div class="step-head"><h3>出力を読む</h3><span class="clock">3:00 – 4:00</span></div>
+            <div class="say">
+              <p>「件名は3案。どれも用件が1行で分かります。本文は330字。</p>
+              <p>ここを見てください。【要確認：回答期日】。AIは、決まっていない期日を勝手に書いていません。</p>
+              <p>——これで、担当者ごとに言い回しが違う問題は、形が揃いました。」</p>
+            </div>
+            <span class="solves">困りごと1 片付いた</span>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">6</button>
+          <div class="step-body">
+            <div class="step-head"><h3>VIPに切り替える</h3><span class="clock">4:00 – 5:00</span></div>
+            <dl class="line"><dt>操作</dt><dd>プロンプトの「顧客区分」の行を <code>一般</code> → <code>VIP</code> に書き換えて再送信。問い合わせ文は触らない。</dd></dl>
+            <div class="say">
+              <p>「同じ問い合わせです。変えるのは、この1行だけ。</p>
+              <p>……変わったのは3箇所です。冒頭の御礼、各段落のクッション言葉、結びの直通連絡先。</p>
+              <p>毎回迷っていた“敬語の強さ”が、設定1行になりました。」</p>
+            </div>
+            <span class="solves">困りごと2 片付いた</span>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">7</button>
+          <div class="step-body">
+            <div class="step-head"><h3>上席の指摘を入れる</h3><span class="clock">5:00 – 6:30</span></div>
+            <dl class="line"><dt>操作</dt><dd>右パネル「プロンプト」の〈差分修正〉をそのまま送信。</dd></dl>
+            <div class="say">
+              <p>「ここで、上席の方が言いそうなことを3つ入れます。長い。謝りすぎ。返金を断定するな。</p>
+              <p>……直した所が、変更前と変更後の表で出ます。どこが変わったか探す時間が要りません。」</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="step hero">
+          <button class="mark" type="button">8</button>
+          <div class="step-body">
+            <div class="step-head"><h3>その指摘を二度と言わせない</h3><span class="clock">6:30 – 7:30</span></div>
+            <span class="solves">山場</span>
+            <dl class="line"><dt>操作</dt><dd>〈ルール恒久化〉を送信し、返ってきた「絶対ルール」をマスタープロンプトに貼り戻して見せる。</dd></dl>
+            <div class="say">
+              <p>「ここからが本題です。いまの3つの指摘を、ルールに書き戻します。</p>
+              <p>貼り戻しました。次からは、最初からこの形で出ます。</p>
+              <p>同じ指摘が戻ってこなくなるのは、AIが賢いからではありません。課のルールが1か所に集まったからです。</p>
+              <p>——これが、3つ目の困りごとの直し方です。」</p>
+            </div>
+            <span class="solves">困りごと3 片付いた</span>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">9</button>
+          <div class="step-body">
+            <div class="step-head"><h3>要確認リスト＝安全装置</h3><span class="clock">7:30 – 8:30</span></div>
+            <div class="say">
+              <p>「最後に、いちばん大事な話をします。</p>
+              <p>AIは、知らないことを、それらしく書いてしまうことがあります。だからこのプロンプトは、分からない所は書くな、【要確認】と残せ、と命令しています。</p>
+              <p>出てきた文を、そのまま送る運用にはしません。人が要確認を潰して、承認してから送ります。</p>
+              <p>速くなるのは“書き始めるまで”です。確認は人が持ちます。」</p>
+            </div>
+            <p class="note">反対意見は、聞かれる前にここで自分から潰す。質疑で守りに回ると不利になります。</p>
+          </div>
+        </article>
+
+        <article class="step">
+          <button class="mark" type="button">10</button>
+          <div class="step-body">
+            <div class="step-head"><h3>締めと次の一手</h3><span class="clock">8:30 – 10:00</span></div>
+            <div class="say">
+              <p>「今日お見せしたのは、プロンプト1枚です。特別な仕組みは入っていません。</p>
+              <p>御社の文体に合わせ込むには、実際に送った返信を5通いただければ足ります。</p>
+              <p>次は、御社の問い合わせ10件で、これを作ります。日程だけ、この場で決めさせてください。」</p>
+            </div>
+            <dl class="line"><dt>注意</dt><dd>次アクションは1つだけ出す。研修・サブスクの説明をここで始めない。デモの熱が冷めます。</dd></dl>
+          </div>
+        </article>
+
+      </div>
+
+      <p class="foot">
+        所要は実測で8〜11分。質疑を含めて15分枠。<br>
+        ステップ4の「60秒」は体感値です。入力の長さと回線で前後します。聞かれたら「だいたい1分、長くても2分」と答えるのが安全です。
+      </p>
+    </main>
+
+    <aside class="panel">
+      <div class="tabs" role="tablist" aria-label="貼り物">
+        <button class="tab" role="tab" id="t-p" aria-controls="s-p" aria-selected="true" type="button">プロンプト</button>
+        <button class="tab" role="tab" id="t-q" aria-controls="s-q" aria-selected="false" type="button">問い合わせ</button>
+        <button class="tab" role="tab" id="t-b" aria-controls="s-b" aria-selected="false" type="button">保険</button>
+        <button class="tab" role="tab" id="t-r" aria-controls="s-r" aria-selected="false" type="button">質疑・リスク</button>
+      </div>
+
+      <!-- プロンプト -->
+      <section class="sheet" id="s-p" role="tabpanel" aria-labelledby="t-p">
+        <div class="block">
+          <div class="block-head">
+            <h4>① マスタープロンプト</h4>
+            <button class="copy" type="button" data-copy="p1">コピー</button>
+          </div>
+          <p class="note" style="margin-bottom:8px">末尾の <span class="swap">"""</span> の間に問い合わせ原文を貼る。VIPデモでは「顧客区分」の行だけ書き換える。</p>
+          <pre id="p1"># 役割
+あなたは顧客管理課の返信文作成アシスタントです。
+
+# 顧客区分
+一般
+
+# 出力（この3つだけ。前置き・あとがきは書かない）
+## 1. 件名案（3つ）
+用件が1行で分かるもの。全角15〜25字。
+## 2. メール本文
+全角300〜400字。構成は「宛名 → お詫びまたは御礼 → 事実の受け止め → 対応内容 → 期日 → 結び」。
+1文は40字以内。箇条書きは3点まで。
+## 3. 要確認リスト
+送る前に社内で確定が必要な事項。各行に「確認すること / 確認先」を書く。表で出す。
+
+# 絶対ルール
+1. 原文に書かれていない金額・日付・手数料・規程名・担当者名を、推測で書かない。
+2. 書く必要があるが確定していない箇所は、本文中に【要確認：○○】とそのまま残す。
+3. お詫びは冒頭の1回だけ。文末で繰り返さない。
+4. 「たぶん」「〜と思います」など担当者の主観は書かない。
+5. 社内用語・略語は使わない。
+
+# 文体（顧客区分で切り替える）
+- 一般：丁寧語＋謙譲語。二重敬語は使わない。前置きは1文まで。
+- VIP：冒頭に日頃のお取引への御礼を1文足す。各段落にクッション言葉を1つ入れる。
+  結びに担当者の直通連絡先の行を足す。増やすのは合計100字まで。
+
+# 問い合わせ原文
+"""
+（ここに貼る）
+"""</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>② 差分修正（上席の指摘）</h4>
+            <button class="copy" type="button" data-copy="p2">コピー</button>
+          </div>
+          <pre id="p2">いまの本文を、下の指摘だけ反映して直してください。
+出力は次の順です。
+1. 変更点の表（指摘 / 変更前 / 変更後）
+2. 修正後の本文（全文）
+指摘にない箇所は変えないでください。
+
+指摘
+1. 長い。280字以内にする。
+2. お詫びは冒頭の1回だけにする。
+3. 返金の可否はまだ決まっていないので、断定せず【要確認】のまま残す。</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>③ ルール恒久化（山場）</h4>
+            <button class="copy" type="button" data-copy="p3">コピー</button>
+          </div>
+          <pre id="p3">いま出した指摘3点を、次回から毎回守るルールとして、
+最初のプロンプトの「絶対ルール」に追記する形で書き直してください。
+出力は、書き直した「絶対ルール」の部分だけで構いません。</pre>
+          <p class="note" style="margin-top:8px">返ってきた文を、①の「絶対ルール」に貼り替えて画面で見せる。ここを飛ばすと、ただの便利ツール紹介で終わります。</p>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>④ 自社文体の学習（質疑で求められたら）</h4>
+            <button class="copy" type="button" data-copy="p4">コピー</button>
+          </div>
+          <pre id="p4">これから、実際に送った返信を5通お見せします。
+この5通に共通する書き方（挨拶の型・段落の順番・よく使う言い回し・避けている表現）を
+箇条書きで抜き出し、最初のプロンプトの「文体」欄に入れる形で書き直してください。
+推測で足さず、5通から読み取れたものだけを書いてください。</pre>
+        </div>
+      </section>
+
+      <!-- 問い合わせ -->
+      <section class="sheet" id="s-q" role="tabpanel" aria-labelledby="t-q" hidden>
+        <div class="block">
+          <div class="block-head">
+            <h4>サンプルA（本番用・請求の行き違い）</h4>
+            <button class="copy" type="button" data-copy="q1">コピー</button>
+          </div>
+          <pre id="q1">件名：先月の請求について
+
+【社名A】の【顧客名A】と申します。
+先月末に届いた請求書の金額が、前回より高くなっていました。
+契約時の説明では、月額は変わらないと伺っていたと思います。
+明細を見ても、何の費用が増えたのか分かりません。
+至急、内訳のご説明と、もし誤りであれば返金の対応をお願いします。
+あわせて、今月末に社内の決算がありますので、それまでに書面をいただきたいです。
+担当の方からの折り返しも、前回お願いしたのですが届いておりません。
+
+契約番号：【契約番号A】
+電話：【電話番号A】</pre>
+          <p class="note" style="margin-top:8px">この文を選んである理由：論点が4つ（金額差異・返金・期日・折り返し漏れ）あり、どれも原文からは確定できません。だから要確認リストが必ず4〜5件出ます。デモの肝が自動的に立ちます。</p>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>サンプルB（予備・場が硬いとき）</h4>
+            <button class="copy" type="button" data-copy="q2">コピー</button>
+          </div>
+          <pre id="q2">件名：契約内容の変更について
+
+お世話になっております。【社名B】の【顧客名B】です。
+来月から拠点が1つ増えるため、利用アカウントを5つ追加したいと考えています。
+追加分の料金と、手続きに必要な書類を教えてください。
+開始は来月1日を希望しています。
+また、現在の契約期間の途中でも追加は可能でしょうか。
+
+契約番号：【契約番号B】</pre>
+        </div>
+
+        <div class="block">
+          <h4 style="margin-bottom:8px">マスキング・ルール</h4>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>元の情報</th><th>置き換え</th></tr></thead>
+              <tbody>
+                <tr><td>氏名</td><td>【顧客名A】</td></tr>
+                <tr><td>会社名・部署名</td><td>【社名A】</td></tr>
+                <tr><td>契約番号・口座番号</td><td>【契約番号A】</td></tr>
+                <tr><td>電話・メール・住所</td><td>【電話番号A】</td></tr>
+                <tr><td>個人が特定できる金額・日付</td><td>【金額】【日付】</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note" style="margin-top:8px">その場で参加者の実文を貼りたいと言われたら、この表を先に出し、「伏せてからお預かりします」と宣言してから受け取ること。宣言なしで受け取らない。</p>
+        </div>
+      </section>
+
+      <!-- 保険 -->
+      <section class="sheet" id="s-b" role="tabpanel" aria-labelledby="t-b" hidden>
+        <p class="note" style="margin-bottom:12px">事前に回した結果。回線が落ちた・出力が崩れた時はこれを出して進める。どう出るはずかの見本でもある。</p>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>件名案</h4>
+            <button class="copy" type="button" data-copy="b1">コピー</button>
+          </div>
+          <pre id="b1">1. ご請求額についてのご確認とお詫び
+2. 先月分ご請求の内訳確認のご連絡
+3. ご請求内容の確認と今後の対応について</pre>
+        </div>
+
+        <div class="block">
+          <div class="block-head">
+            <h4>メール本文（一般・約330字）</h4>
+            <button class="copy" type="button" data-copy="b2">コピー</button>
+          </div>
+          <pre id="b2">【社名A】
+【顧客名A】様
+
+お世話になっております。顧客管理課の【要確認：担当者名】でございます。
+このたびはご請求内容にご不明な点をおかけし、またご連絡が遅れ、誠に申し訳ございません。
+
+先月分のご請求額が前回より増えているとのこと、承りました。
+現在、以下を確認しております。
+
+・ご請求額が増えた理由と、該当する明細項目
+・ご契約時のご説明内容との相違の有無
+・誤りであった場合の返金の可否と手続き
+
+確認の結果は、【要確認：回答期日】までに書面でお送りいたします。
+貴社の決算のご予定も承っておりますので、間に合うよう進めてまいります。
+
+ご不便をおかけし恐縮ですが、今しばらくお待ちくださいますようお願い申し上げます。</pre>
+        </div>
+
+        <div class="block">
+          <h4 style="margin-bottom:8px">要確認リスト</h4>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>確認すること</th><th>確認先</th></tr></thead>
+              <tbody>
+                <tr><td>先月分の請求額が増えた理由と該当項目</td><td>経理 / 請求システム</td></tr>
+                <tr><td>契約時の説明内容（月額据え置きの案内の有無）</td><td>営業担当 / 契約書控え</td></tr>
+                <tr><td>誤請求だった場合の返金可否・手数料・手続き</td><td>経理 / 社内規程</td></tr>
+                <tr><td>書面での回答期日（先方の決算に間に合うか）</td><td>上席 / 顧客に確認</td></tr>
+                <tr><td>前回の折り返し依頼が未対応になった経緯</td><td>対応履歴 / 前回担当者</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note" style="margin-top:8px">読み上げるのは上2行だけで十分。「決まっていないことが5つ、先に出てきます」と言い切る方が伝わります。</p>
+        </div>
+
+        <div class="block">
+          <h4 style="margin-bottom:8px">VIPに切り替えると変わる3箇所</h4>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>箇所</th><th>加わる文</th></tr></thead>
+              <tbody>
+                <tr><td>冒頭</td><td>平素より格別のお引き立てを賜り、厚く御礼申し上げます。</td></tr>
+                <tr><td>各段落</td><td>恐れ入りますが／差し支えなければ／誠に恐縮ながら</td></tr>
+                <tr><td>結び</td><td>本件は私【要確認：担当者名】が直接担当いたします。直通：【要確認：直通番号】</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note" style="margin-top:8px">「変わったのは3箇所だけ」と数を言う。数を言うと、設定で制御できていることが伝わります。</p>
+        </div>
+      </section>
+
+      <!-- 質疑・リスク -->
+      <section class="sheet" id="s-r" role="tabpanel" aria-labelledby="t-r" hidden>
+        <h4 style="margin-bottom:10px">よく出る質問と答え方</h4>
+        <dl>
+          <div class="qa">
+            <dt>間違った内容を送ってしまわないか</dt>
+            <dd>だから要確認リストを3つ目に出しています。確定していない所はAIに書かせず、人が潰してから送る運用にします。無編集での送信は、運用ルールで禁止してください。</dd>
+          </div>
+          <div class="qa">
+            <dt>顧客の個人情報を入れて大丈夫か</dt>
+            <dd>今日お見せしたのは全てマスキング済みです。実運用では、伏せ字ルールの徹底に加えて、学習に使われない法人向けの契約で使います。個人情報の取り扱い方針は、貴社の顧問の弁護士・社労士にご確認ください。ここは私の領分ではありません。</dd>
+          </div>
+          <div class="qa">
+            <dt>文体が自社と違う</dt>
+            <dd>実際に送った返信を5通いただければ、そこから型を抜き出してプロンプトに入れます（右の④）。ゼロから作るのではなく、今の文体を写します。</dd>
+          </div>
+          <div class="qa">
+            <dt>結局、人が直すなら時短にならないのでは</dt>
+            <dd>速くなるのは「白紙から書き始めるまで」です。直す時間は残ります。導入前に、現状の1件あたりの所要を実測してください。それが無いと、効果の議論ができません。</dd>
+          </div>
+          <div class="qa">
+            <dt>毎回このプロンプトを貼るのは面倒では</dt>
+            <dd>実運用では定型として登録し、担当者は問い合わせ文を貼るだけにします。今日は中身を見せるために、あえて全文を出しています。</dd>
+          </div>
+          <div class="qa">
+            <dt>本当に60秒か</dt>
+            <dd>入力の長さと回線で前後します。だいたい1分、長くて2分です。今日の実測はご覧のとおりです、と画面の数字を指す。</dd>
+          </div>
+        </dl>
+
+        <h4 style="margin:18px 0 10px">先に言っておくリスク</h4>
+        <div class="risk"><b>1</b><div>AIは事実を作る。要確認リストと人の承認を外した瞬間に、誤情報が顧客に届く経路ができる。</div></div>
+        <div class="risk"><b>2</b><div>情報漏えい。マスキングの徹底と、学習に使われない契約形態。法務の確認は専門家へ。</div></div>
+        <div class="risk"><b>3</b><div>プロンプトの属人化。「ルールを1か所に集める」は、その1か所を誰が管理するかを決めない限り機能しない。</div></div>
+        <div class="risk"><b>4</b><div>品質の下限は上がるが、上限は上がらない。一番うまい担当者の文より良くはならない。</div></div>
+        <div class="risk"><b>5</b><div>現場の反発。「AIに書かせるのか」への答えを、課長が自分の言葉で持っていないと定着しない。</div></div>
+
+        <h4 style="margin:18px 0 10px">効果の試算（前提つき・要実測）</h4>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>項目</th><th>置いた前提</th></tr></thead>
+            <tbody>
+              <tr><td>1件あたり</td><td>15分 → 5分（10分短縮）</td></tr>
+              <tr><td>件数</td><td>1日20件 × 月20日 = 月400件</td></tr>
+              <tr><td>削減時間</td><td>月 約66時間</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:8px">これは前提を置いた試算であり、実測値ではありません。数字を出す時は「仮にこの前提なら」と必ず添えること。断定すると、導入後に前提が崩れた時に全部こちらの責任になります。</p>
+      </section>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── 60秒タイマー ──
+  var LEN = 60, R = 26, C = 2 * Math.PI * R;
+  var clock = document.getElementById('clock'),
+      ring  = document.getElementById('ring'),
+      dial  = document.getElementById('dial'),
+      go    = document.getElementById('go'),
+      reset = document.getElementById('reset');
+  ring.setAttribute('stroke-dasharray', C.toFixed(1));
+  var t0 = 0, acc = 0, id = null;
+
+  function elapsed(){ return acc + (id ? (Date.now() - t0) / 1000 : 0); }
+
+  function paint(){
+    var e = elapsed();
+    var left = LEN - e;
+    if (left >= 0){
+      clock.textContent = Math.ceil(left);
+      ring.setAttribute('stroke-dashoffset', (C * Math.min(e / LEN, 1)).toFixed(1));
+      dial.classList.remove('over');
+    } else {
+      clock.textContent = '+' + Math.floor(-left);
+      ring.setAttribute('stroke-dashoffset', '0');
+      dial.classList.add('over');
+    }
+  }
+
+  function start(){
+    if (id) return;
+    t0 = Date.now();
+    id = setInterval(paint, 200);
+    go.textContent = '止める';
+    go.setAttribute('aria-pressed', 'true');
+  }
+  function stop(){
+    if (!id) return;
+    acc = elapsed();
+    clearInterval(id); id = null;
+    go.textContent = '続ける';
+    go.setAttribute('aria-pressed', 'false');
+    paint();
+  }
+  go.addEventListener('click', function(){ id ? stop() : start(); });
+  reset.addEventListener('click', function(){
+    if (id){ clearInterval(id); id = null; }
+    acc = 0;
+    go.textContent = '開始';
+    go.setAttribute('aria-pressed', 'false');
+    paint();
+  });
+  paint();
+
+  // ── タブ ──
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(o){
+        var on = (o === tab);
+        o.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(o.getAttribute('aria-controls')).hidden = !on;
+      });
+    });
+  });
+
+  // ── コピー ──
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var el = document.getElementById(btn.getAttribute('data-copy'));
+      if (!el) return;
+      var txt = el.innerText;
+      function fallback(){
+        var sel = window.getSelection();
+        var rng = document.createRange();
+        rng.selectNodeContents(el);
+        sel.removeAllRanges(); sel.addRange(rng);
+        btn.textContent = '選択しました';
+        setTimeout(function(){ btn.textContent = 'コピー'; }, 2200);
+      }
+      try {
+        navigator.clipboard.writeText(txt).then(function(){
+          btn.textContent = 'コピーした';
+          btn.classList.add('ok');
+          setTimeout(function(){ btn.textContent = 'コピー'; btn.classList.remove('ok'); }, 1600);
+        }, fallback);
+      } catch (e) { fallback(); }
+    });
+  });
+
+  // ── ステップ済み ──
+  document.querySelectorAll('.step .mark').forEach(function(m){
+    m.addEventListener('click', function(){
+      m.closest('.step').classList.toggle('done');
+    });
+  });
+})();
+</script>
