@@ -13,10 +13,12 @@
  * 単体の CLI として:   node server.mjs --ask "質問"  /  node server.mjs --models
  */
 
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { resolve, join } from "node:path";
 
 const DEFAULT_MODEL = "gpt-5.1";
+const DEFAULT_IMAGE_MODEL = "gpt-image-2";
+const DEFAULT_IMAGE_DIR = "generated-images";
 const BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 300_000;
 const MAX_BYTES_PER_FILE = 100_000;
@@ -42,9 +44,10 @@ async function callOpenAI(path, { method = "GET", body } = {}) {
       method,
       headers: {
         Authorization: `Bearer ${key}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
+        // FormData のときは Content-Type を fetch に任せる (boundary が必要)。
+        ...(body && !(body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       signal: controller.signal,
     });
   } catch (err) {
@@ -139,6 +142,96 @@ async function askGpt({ prompt, system, model, files, reasoning_effort, temperat
   return answer + usage;
 }
 
+// 先頭バイトから拡張子を判定する。output_format の既定値はモデルにより異なるため、
+// パラメータを送らずに実際の形式を見て決める。
+function extensionOf(buffer) {
+  if (buffer.length > 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+    return "png";
+  if (buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "jpg";
+  if (buffer.length > 12 && buffer.subarray(0, 4).toString() === "RIFF" && buffer.subarray(8, 12).toString() === "WEBP")
+    return "webp";
+  return "png";
+}
+
+async function saveImages(data, { out_dir, name_prefix }) {
+  const dir = resolve(process.cwd(), out_dir || DEFAULT_IMAGE_DIR);
+  await mkdir(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "");
+  const prefix = (name_prefix || "image").replace(/[^\w.-]/g, "_");
+  const saved = [];
+  for (const [i, item] of (data ?? []).entries()) {
+    if (!item.b64_json) continue;
+    const buffer = Buffer.from(item.b64_json, "base64");
+    const path = join(dir, `${prefix}-${stamp}-${i + 1}.${extensionOf(buffer)}`);
+    await writeFile(path, buffer);
+    saved.push({ path, bytes: buffer.length, revised_prompt: item.revised_prompt });
+  }
+  if (!saved.length) throw new Error("画像データが返りませんでした。");
+  return saved;
+}
+
+function formatImageResult(saved, data, model) {
+  const lines = saved.map(
+    (f) => `- ${f.path} (${Math.round(f.bytes / 1024)} KB)` + (f.revised_prompt ? `\n  補正後プロンプト: ${f.revised_prompt}` : "")
+  );
+  const usage = data.usage
+    ? `tokens: in ${data.usage.input_tokens ?? "?"}, out ${data.usage.output_tokens ?? "?"}`
+    : "";
+  return [`${saved.length}枚を保存しました。`, "", ...lines, "", `---`, `model: ${model}${usage ? " / " + usage : ""}`].join("\n");
+}
+
+// 画像サイズ・品質などは、指定されたときだけ送る。モデルによって受け付ける値が
+// 異なり、既定で送ると 400 になるため。
+function applyImageOptions(body, { size, quality, n, background, output_format }) {
+  if (size) body.size = size;
+  if (quality) body.quality = quality;
+  if (typeof n === "number") body.n = n;
+  if (background) body.background = background;
+  if (output_format) body.output_format = output_format;
+  return body;
+}
+
+async function generateImage(args) {
+  const { prompt, model, ...rest } = args;
+  if (!prompt || !prompt.trim()) throw new Error("prompt は必須です。");
+  const chosen = model || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+  const body = applyImageOptions({ model: chosen, prompt }, rest);
+  const data = await callOpenAI("/images/generations", { method: "POST", body });
+  const saved = await saveImages(data.data, rest);
+  return formatImageResult(saved, data, chosen);
+}
+
+async function editImage(args) {
+  const { prompt, images, mask, model, ...rest } = args;
+  if (!prompt || !prompt.trim()) throw new Error("prompt は必須です。");
+  if (!images?.length) throw new Error("images に編集元の画像パスを1つ以上指定してください。");
+  const chosen = model || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+
+  const form = new FormData();
+  form.append("model", chosen);
+  form.append("prompt", prompt);
+  for (const file of images) {
+    const path = resolve(process.cwd(), file);
+    let buffer;
+    try {
+      buffer = await readFile(path);
+    } catch (err) {
+      throw new Error(`画像を読めません (${file}): ${err.message}`);
+    }
+    form.append("image[]", new Blob([buffer]), path.split("/").pop());
+  }
+  if (mask) {
+    const path = resolve(process.cwd(), mask);
+    form.append("mask", new Blob([await readFile(path)]), path.split("/").pop());
+  }
+  const opts = applyImageOptions({}, rest);
+  for (const [key, value] of Object.entries(opts)) form.append(key, String(value));
+
+  const data = await callOpenAI("/images/edits", { method: "POST", body: form });
+  const saved = await saveImages(data.data, rest);
+  return formatImageResult(saved, data, chosen);
+}
+
 async function listModels() {
   const data = await callOpenAI("/models");
   const ids = (data.data ?? [])
@@ -199,6 +292,101 @@ const TOOLS = [
     },
   },
   {
+    name: "generate_image",
+    description:
+      "OpenAI の画像生成モデル (gpt-image-2 など) で画像を生成し、ファイルに保存してパスを返す。" +
+      "動画のキーフレーム・サムネイル・素材画像・ポスターの作成に使う。文字入りの画像にも強い。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "生成したい画像の説明。日本語可。" },
+        size: {
+          type: "string",
+          description:
+            '任意。"1024x1024" など。長辺3840px未満、各辺16の倍数、縦横比3:1以内。未指定ならモデル既定。',
+        },
+        quality: {
+          type: "string",
+          enum: ["auto", "low", "medium", "high"],
+          description: "任意。高いほど高品質・高コスト。未指定ならモデル既定。",
+        },
+        n: { type: "number", description: "任意。生成枚数。" },
+        background: {
+          type: "string",
+          enum: ["auto", "transparent", "opaque"],
+          description: "任意。transparent は png/webp のみ有効。",
+        },
+        output_format: {
+          type: "string",
+          enum: ["png", "jpeg", "webp"],
+          description: "任意。未指定なら送信せず、返ったデータから形式を判定する。",
+        },
+        out_dir: {
+          type: "string",
+          description: `任意。保存先ディレクトリ。既定は ./${"generated-images"} 。`,
+        },
+        name_prefix: { type: "string", description: "任意。保存ファイル名の接頭辞。" },
+        model: {
+          type: "string",
+          description: "任意。画像モデルID。未指定なら OPENAI_IMAGE_MODEL、それも無ければ gpt-image-2。",
+        },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    name: "edit_image",
+    description:
+      "既存の画像を OpenAI の画像モデルで編集する。複数画像を渡して合成・一貫性のある差分生成もできる。" +
+      "mask を渡すとその領域だけを描き換える (インペイント)。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "どう編集するかの指示。日本語可。" },
+        images: {
+          type: "array",
+          items: { type: "string" },
+          description: "編集元の画像ファイルのパス(1つ以上)。",
+        },
+        mask: {
+          type: "string",
+          description: "任意。透明部分を描き換え対象とするマスク画像(PNG)のパス。",
+        },
+        size: {
+          type: "string",
+          description:
+            '任意。"1024x1024" など。長辺3840px未満、各辺16の倍数、縦横比3:1以内。未指定ならモデル既定。',
+        },
+        quality: {
+          type: "string",
+          enum: ["auto", "low", "medium", "high"],
+          description: "任意。高いほど高品質・高コスト。未指定ならモデル既定。",
+        },
+        n: { type: "number", description: "任意。生成枚数。" },
+        background: {
+          type: "string",
+          enum: ["auto", "transparent", "opaque"],
+          description: "任意。transparent は png/webp のみ有効。",
+        },
+        output_format: {
+          type: "string",
+          enum: ["png", "jpeg", "webp"],
+          description: "任意。未指定なら送信せず、返ったデータから形式を判定する。",
+        },
+        out_dir: {
+          type: "string",
+          description: `任意。保存先ディレクトリ。既定は ./${"generated-images"} 。`,
+        },
+        name_prefix: { type: "string", description: "任意。保存ファイル名の接頭辞。" },
+        model: {
+          type: "string",
+          description: "任意。画像モデルID。未指定なら OPENAI_IMAGE_MODEL、それも無ければ gpt-image-2。",
+        },
+      },
+      required: ["prompt", "images"],
+    },
+  },
+  {
     name: "list_models",
     description:
       "この API キーで実際に使えるモデル ID の一覧を取得する。モデル名のエラーが出たときに使う。",
@@ -249,6 +437,8 @@ async function handleRequest(msg) {
     try {
       let text;
       if (name === "ask_gpt") text = await askGpt(args);
+      else if (name === "generate_image") text = await generateImage(args);
+      else if (name === "edit_image") text = await editImage(args);
       else if (name === "list_models") text = await listModels();
       else throw new Error(`未知のツール: ${name}`);
       respond(id, { content: [{ type: "text", text }] });
@@ -309,6 +499,9 @@ async function runCli(argv) {
   try {
     if (flag === "--models") {
       process.stdout.write((await listModels()) + "\n");
+    } else if (flag === "--image") {
+      const prompt = argv.slice(1).join(" ");
+      process.stdout.write((await generateImage({ prompt })) + "\n");
     } else if (flag === "--ask") {
       const prompt = argv.slice(1).join(" ");
       process.stdout.write((await askGpt({ prompt })) + "\n");
@@ -318,8 +511,9 @@ async function runCli(argv) {
           "gpt-bridge - Claude Code から OpenAI のモデルを呼ぶ MCP サーバー",
           "",
           "  node server.mjs              MCP サーバーとして起動 (Claude Code が実行する)",
-          '  node server.mjs --ask "質問"  その場で GPT に質問する',
-          "  node server.mjs --models     使えるモデル一覧を表示する",
+          '  node server.mjs --ask "質問"   その場で GPT に質問する',
+          '  node server.mjs --image "説明" その場で画像を生成する',
+          "  node server.mjs --models      使えるモデル一覧を表示する",
           "",
         ].join("\n")
       );

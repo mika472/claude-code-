@@ -78,12 +78,18 @@ Claude に日本語で頼むだけです。
 |---|---|
 | 「この件、GPTにも聞いて意見を比べて」 | `ask_gpt` |
 | 「`server.mjs` をGPTにレビューさせて」 | `ask_gpt`(files付き) |
+| 「このテロップ入りサムネを縦型で作って」 | `generate_image` |
+| 「この画像の文字だけ差し替えて」 | `edit_image` |
 | 「使えるモデル一覧を出して」 | `list_models` |
+
+生成した画像は `./generated-images/` に保存され、パスが返ります。そのまま
+Claude に「この画像をffmpegで動画の冒頭3秒に重ねて」と続けられます。
 
 Claude を経由せず単体でも動きます(動作確認に便利)。
 
 ```bash
 node mcp/gpt-bridge/server.mjs --ask "日本の中小企業向けAI研修の相場を教えて"
+node mcp/gpt-bridge/server.mjs --image "縦型9:16のサムネイル。中央に大きく「AI研修」の文字"
 node mcp/gpt-bridge/server.mjs --models
 ```
 
@@ -100,7 +106,39 @@ node mcp/gpt-bridge/server.mjs --models
 | `reasoning_effort` | | `minimal`/`low`/`medium`/`high`(対応モデルのみ) |
 | `temperature` | | 0〜2。未指定なら送信しない |
 
+**`generate_image`** / **`edit_image`**
+
+| 引数 | 必須 | 説明 |
+|---|---|---|
+| `prompt` | ○ | 生成・編集の指示(日本語可) |
+| `images` | `edit_image`のみ○ | 編集元の画像パス(配列)。複数渡すと合成も可 |
+| `mask` | | 透明部分だけを描き換えるマスクPNG |
+| `size` | | `1024x1536`(縦型)など。長辺3840px未満・各辺16の倍数・比率3:1以内 |
+| `quality` | | `auto`/`low`/`medium`/`high`。高いほど高コスト |
+| `n` | | 生成枚数 |
+| `background` | | `transparent` で背景透過(png/webpのみ) |
+| `out_dir` / `name_prefix` | | 保存先と接頭辞。既定は `./generated-images/` |
+| `model` | | 既定は `OPENAI_IMAGE_MODEL` → `gpt-image-2` |
+
+> `size`・`quality` などは**指定したときだけAPIに送る**設計です。モデルに
+> よって受け付ける値が違い、既定値を勝手に送ると400エラーになるためです。
+
 **`list_models`** — そのAPIキーで実際に使えるモデルIDを一覧表示。
+
+### 画像生成のコスト目安
+
+| 品質 | 1024×1024 の1枚あたり概算 |
+|---|---|
+| low | 約 $0.006 |
+| medium | 約 $0.053 |
+| high | 約 $0.211 |
+
+出典は第三者による試算で、公式の定価表記ではありません(確信度:中)。
+`gpt-image-2` のトークン単価は公式ページで image input $4/1M・output $15/1M と
+記載されていますが、第三者サイトは $8/$30 と食い違っています。**本番前に
+<https://platform.openai.com/docs/pricing> で必ず確認してください。**
+
+試行錯誤で枚数が増えると効きます。high で100枚作れば約$21(約3,000円)です。
 
 ---
 
