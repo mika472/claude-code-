@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "gpt": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/gpt-bridge/server.mjs"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+        "OPENAI_MODEL": "${OPENAI_MODEL:-gpt-5.1}"
+      },
+      "timeout": 300000
+    }
+  }
+}
