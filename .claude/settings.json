@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Agent",
+      "SendMessage",
+      "ToolSearch",
+      "mcp__Google_Drive",
+      "mcp__Canva",
+      "mcp__Claude_Docs",
+      "mcp__claude-code-remote"
+    ]
+  }
+}
